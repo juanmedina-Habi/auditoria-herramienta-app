@@ -176,3 +176,15 @@ export type AuditFilter = {
   countryCode: CountryCode
   processType: ProcessType
 }
+
+export type NotificationType = 'alerta' | 'sla' | 'asignacion' | 'escalado' | 'resumen'
+
+export type AppNotification = {
+  id: string
+  type: NotificationType
+  title: string
+  description: string
+  nid?: string
+  fecha: string
+  priority: 'high' | 'medium' | 'low'
+}
