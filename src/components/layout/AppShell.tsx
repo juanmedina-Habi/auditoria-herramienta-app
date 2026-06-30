@@ -8,7 +8,7 @@ export function AppShell() {
       <Sidebar />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar />
-        <main className="min-h-0 flex-1 overflow-y-auto p-4">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-slate-50/80 to-surface p-4">
           <Outlet />
         </main>
       </div>

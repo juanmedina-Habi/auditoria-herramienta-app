@@ -37,14 +37,14 @@ export function MetricCard({
   compact = false,
   className,
 }: MetricCardProps) {
-  const showDelta = delta && deltaDirection
+  const showDelta = delta && deltaDirection && delta !== '—'
   const deltaIsGood = deltaPositive ?? deltaDirection === 'up'
 
   return (
     <div
       className={cn(
-        'relative rounded-lg border border-border-soft bg-surface-card shadow-sm',
-        compact ? 'p-2.5' : 'rounded-xl p-4 shadow-sm transition-shadow hover:shadow-md',
+        'relative rounded-lg border border-border-soft bg-surface-card shadow-sm transition-shadow hover:shadow-md',
+        compact ? 'p-2.5' : 'rounded-xl p-4',
         className,
       )}
     >

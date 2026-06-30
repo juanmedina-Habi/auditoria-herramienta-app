@@ -14,7 +14,7 @@ export function Card({ children, className, title, description, action, compact 
   return (
     <div
       className={cn(
-        'rounded-lg border border-border-soft bg-surface-card shadow-sm',
+        'rounded-lg border border-border-soft bg-surface-card shadow-sm transition-shadow hover:shadow-md',
         compact ? 'p-3' : 'rounded-xl p-5 shadow-sm',
         className,
       )}
@@ -24,6 +24,7 @@ export function Card({ children, className, title, description, action, compact 
           <div className="min-w-0">
             {title && (
               <h3 className={cn('font-semibold text-text-primary', compact ? 'text-xs' : 'text-sm')}>
+                <span className="mr-1.5 inline-block h-3 w-0.5 rounded-full bg-brand-500 align-middle" aria-hidden />
                 {title}
               </h3>
             )}

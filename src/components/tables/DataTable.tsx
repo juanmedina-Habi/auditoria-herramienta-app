@@ -70,13 +70,14 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody>
-            {data.map((row) => (
+            {data.map((row, rowIndex) => (
               <tr
                 key={keyExtractor(row)}
                 onClick={() => onRowClick?.(row)}
                 className={cn(
-                  'group border-b border-border-soft last:border-0',
-                  onRowClick && 'cursor-pointer hover:bg-slate-50',
+                  'group border-b border-border-soft last:border-0 transition-colors',
+                  rowIndex % 2 === 1 && 'bg-slate-50/40',
+                  onRowClick && 'cursor-pointer hover:bg-brand-50/50',
                 )}
               >
                 {columns.map((col) => (
