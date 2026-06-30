@@ -4,6 +4,7 @@ import type {
   AuditHistoryItem,
   AuditMetric,
   AuditRule,
+  AppNotification,
   Comparable,
   CountryCode,
   DashboardStats,
@@ -15,6 +16,7 @@ import { rules } from '../data/rules'
 import { dashboardStats, auditMetrics, getMonthlyTrend } from '../data/metrics'
 import { auditors, getCurrentUser } from '../data/auditors'
 import { alertSummary } from '../data/mockFactory'
+import { isDateInRange } from '../lib/dates'
 
 export type AuditScope = AuditFilter
 
@@ -100,6 +102,94 @@ export function getTrend(scope: AuditScope) {
 
 export function getAlerts(scope: AuditScope) {
   return alertSummary(filterCases(scope))
+}
+
+export function filterCasesByDateRange(scope: AuditScope, start: string, end: string): AuditCase[] {
+  return filterCases(scope).filter((c) => isDateInRange(c.fecha, start, end))
+}
+
+export function getNotifications(scope: AuditScope, auditorName?: string): AppNotification[] {
+  const cases = filterCases(scope)
+  const user = auditorName ?? getCurrentUser(scope.countryCode).name
+  const items: AppNotification[] = []
+
+  for (const c of cases) {
+    const slaLower = c.sla.toLowerCase()
+    if (slaLower.includes('vencido')) {
+      items.push({
+        id: `sla-vencido-${c.id}`,
+        type: 'sla',
+        title: 'SLA vencido',
+        description: c.motivoAlerta || `Revisión pendiente en ${c.ciudad}`,
+        nid: c.nid,
+        fecha: c.fecha,
+        priority: 'high',
+      })
+    } else if (c.slaSegundos !== undefined && c.slaSegundos <= 3600) {
+      items.push({
+        id: `sla-riesgo-${c.id}`,
+        type: 'sla',
+        title: 'SLA por vencer',
+        description: `${c.sla} restantes — NID ${c.nid}`,
+        nid: c.nid,
+        fecha: c.fecha,
+        priority: 'medium',
+      })
+    }
+  }
+
+  for (const c of cases.filter((x) => x.auditorAsignado === user && x.resultadoAutomatico === 'alerta')) {
+    items.push({
+      id: `alerta-${c.id}`,
+      type: 'alerta',
+      title: 'Caso con alerta automática',
+      description: c.motivoAlerta || 'Validación manual requerida',
+      nid: c.nid,
+      fecha: c.fecha,
+      priority: 'high',
+    })
+  }
+
+  for (const c of cases.filter((x) => x.auditorAsignado === user && x.estado === 'pendiente')) {
+    items.push({
+      id: `asignacion-${c.id}`,
+      type: 'asignacion',
+      title: 'Nuevo caso asignado',
+      description: `${c.ciudad} · ${c.tipoInmueble} · ${c.lineaNegocio}`,
+      nid: c.nid,
+      fecha: c.fecha,
+      priority: 'medium',
+    })
+  }
+
+  for (const c of cases.filter((x) => x.estado === 'escalado')) {
+    items.push({
+      id: `escalado-${c.id}`,
+      type: 'escalado',
+      title: 'Caso escalado a Pricing',
+      description: c.motivoComentario || c.motivoAlerta || 'Revisión de segundo nivel',
+      nid: c.nid,
+      fecha: c.fecha,
+      priority: 'medium',
+    })
+  }
+
+  const alerts = getAlerts(scope)
+  for (const { motivo, count } of alerts.slice(0, 2)) {
+    items.push({
+      id: `resumen-${motivo}`,
+      type: 'resumen',
+      title: 'Patrón de alertas frecuente',
+      description: `${motivo} — ${count} casos en el periodo`,
+      fecha: cases[0]?.fecha ?? new Date().toISOString().slice(0, 10),
+      priority: 'low',
+    })
+  }
+
+  const priorityOrder = { high: 0, medium: 1, low: 2 }
+  return items
+    .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+    .slice(0, 12)
 }
 
 export function getTaskStats(scope: AuditScope) {
