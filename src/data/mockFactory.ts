@@ -10,6 +10,7 @@ import type {
   ProcessType,
   ValidationStatus,
 } from '../types/audit'
+import { daysAgoIso } from '../lib/dates'
 import { getProcessLabel } from './processes'
 
 const CO_CITIES = ['Bogotá', 'Valle de Aburrá', 'Cali', 'Barranquilla', 'Cartagena', 'Aledaños']
@@ -75,7 +76,7 @@ function buildCase(
     countryCode: country,
     processType: process,
     nid: nidFor(country, i),
-    fecha: `2026-05-${String(20 + (i % 9)).padStart(2, '0')}`,
+    fecha: daysAgoIso(i * 2 + (i % 11)),
     hora: `${String(9 + (i % 8)).padStart(2, '0')}:${String(i * 7 % 60).padStart(2, '0')}:00`,
     ciudad: pick(cities, i),
     zona: pick(cities, i + 1),
@@ -393,13 +394,25 @@ function buildPricingInicialDemo(country: CountryCode): AuditCase[] {
           },
         ]
 
-  return seeds.map((seed, i) => ({
-    ...seed,
-    id: `${country}-PRICING_INICIAL-${i}`,
-    countryCode: country,
-    processType: 'PRICING_INICIAL' as const,
-    proceso: label,
-  }))
+  return [
+    ...seeds.map((seed, i) => ({
+      ...seed,
+      fecha: daysAgoIso([0, 0, 1, 2, 3][i] ?? i),
+      id: `${country}-PRICING_INICIAL-${i}`,
+      countryCode: country,
+      processType: 'PRICING_INICIAL' as const,
+      proceso: label,
+    })),
+    ...Array.from({ length: 18 }, (_, i) => {
+      const base = buildCase(country, 'PRICING_INICIAL', i + 20)
+      return {
+        ...base,
+        id: `${country}-PRICING_INICIAL-extra-${i}`,
+        nid: nidFor(country, 20 + i),
+        fecha: daysAgoIso(4 + i * 5 + (i % 4)),
+      }
+    }),
+  ]
 }
 
 export function generateAllCases(): AuditCase[] {
