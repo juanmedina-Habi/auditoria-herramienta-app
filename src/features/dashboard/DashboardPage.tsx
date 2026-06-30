@@ -1,9 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
   BarChart3,
-  CalendarRange,
   CheckCircle2,
   ClipboardList,
   Clock,
@@ -16,15 +15,17 @@ import {
   FileWarning,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { useAudit } from '../../context/AuditContext'
 import { getProcessLabel } from '../../data/processes'
 import { getDashboardView } from '../../data/dashboardView'
-import { getAuditorLoad, filterCases } from '../../services/auditService'
+import { filterCases, getAuditorLoad } from '../../services/auditService'
+import { CityBreakdownChart } from '../../components/charts/CityBreakdownChart'
 import { MetricCard } from '../../components/ui/MetricCard'
 import { Card } from '../../components/ui/Card'
 import { DataTable } from '../../components/tables/DataTable'
 import { PageHeader, pageShellClass } from '../../components/ui/PageHeader'
+import { DateRangePicker } from '../../components/ui/DateRangePicker'
+import { getYearToDateRange } from '../../lib/dates'
 import { cn } from '../../lib/utils'
 import type { AuditCase } from '../../types/audit'
 
@@ -71,6 +72,12 @@ export function DashboardPage() {
   const view = getDashboardView(countryCode, processType)
   const processLabel = getProcessLabel(processType)
   const auditorLoad = getAuditorLoad(scope)
+
+  const [dateRange, setDateRange] = useState(getYearToDateRange)
+
+  useEffect(() => {
+    setDateRange(getYearToDateRange())
+  }, [scope.countryCode, scope.processType])
 
   const alertCases = useMemo(() => {
     return filterCases(scope)
@@ -155,15 +162,10 @@ export function DashboardPage() {
         meta={<span className="hidden text-[10px] text-text-secondary lg:inline">{view.updatedAt}</span>}
         actions={
           <>
+            <DateRangePicker value={dateRange} onChange={setDateRange} />
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 rounded-md border border-border-soft bg-white px-2 py-1 text-[10px] font-medium text-text-primary hover:bg-slate-50"
-            >
-              <CalendarRange className="h-3 w-3 text-text-secondary" />
-              {view.dateRange}
-            </button>
-            <button
-              type="button"
+              onClick={() => setDateRange(getYearToDateRange())}
               className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border-soft bg-white text-text-secondary hover:bg-slate-50"
               aria-label="Actualizar"
             >
@@ -192,7 +194,6 @@ export function DashboardPage() {
         })}
       </div>
 
-      {/* Fila media — carga por auditor más estrecha */}
       <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-12">
         <Card title="Errores más frecuentes" compact className="lg:col-span-5">
           <div className="space-y-2">
@@ -214,47 +215,7 @@ export function DashboardPage() {
         </Card>
 
         <Card title="Resultado por ciudad" compact className="lg:col-span-5">
-          <div className="flex items-center gap-3">
-            <div className="relative h-[110px] w-[110px] shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={view.cityBreakdown}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={32}
-                    outerRadius={46}
-                    paddingAngle={2}
-                    stroke="none"
-                  >
-                    {view.cityBreakdown.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [value ?? 0, 'NIDs']} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-base font-bold leading-none tabular-nums">{view.totalAudited}</span>
-                <span className="text-[9px] font-medium uppercase text-text-secondary">Total</span>
-              </div>
-            </div>
-            <ul className="min-w-0 flex-1 space-y-1.5">
-              {view.cityBreakdown.map((city) => (
-                <li key={city.name} className="flex items-center justify-between gap-1 text-[11px]">
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: city.color }} />
-                    <span className="truncate text-text-secondary">{city.name}</span>
-                  </span>
-                  <span className="shrink-0 tabular-nums font-medium">
-                    {city.pct}% <span className="text-text-secondary">({city.value})</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <CityBreakdownChart slices={view.cityBreakdown} total={view.totalAudited} />
         </Card>
 
         <Card title="Carga por auditor" compact className="lg:col-span-2">
@@ -283,7 +244,6 @@ export function DashboardPage() {
         </Card>
       </div>
 
-      {/* Fila inferior — tabla protagonista */}
       <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-12">
         <Card title="Resumen operativo" compact className="lg:col-span-2">
           <ul className="space-y-2">
